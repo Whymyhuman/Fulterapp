@@ -28,10 +28,10 @@ class ThemeProvider with ChangeNotifier {
       backgroundColor: Colors.transparent,
       foregroundColor: Colors.black87,
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -60,10 +60,10 @@ class ThemeProvider with ChangeNotifier {
       backgroundColor: Colors.transparent,
       foregroundColor: Colors.white,
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -178,4 +178,5 @@ class ThemeProvider with ChangeNotifier {
     }
   }
 }
+
 
