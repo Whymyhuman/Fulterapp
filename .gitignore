@@ -1,0 +1,34 @@
+
+
+
+
+# Flutter/Dart specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.idea/
+.vscode/
+build/
+*.iml
+*.lock
+
+# Android specific
+android/local.properties
+android/.gradle
+android/build/
+android/app/build/
+android/app/src/debug/
+android/app/src/release/
+
+# iOS specific
+ios/.symlinks/
+ios/Flutter/.last_build_id
+
+# VS Code specific
+.vscode/
+
+# Other
+*.log
+*.DS_Store
+

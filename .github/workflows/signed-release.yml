@@ -1,0 +1,146 @@
+name: Signed Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-signed-apk:
+    name: Build Signed APK
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.22.2'
+        channel: 'stable'
+        cache: true
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Generate code
+      run: flutter packages pub run build_runner build --delete-conflicting-outputs
+      
+    - name: Create key.properties
+      run: |
+        echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
+        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+        echo "storeFile=../app-signing-key.jks" >> android/key.properties
+        
+    - name: Decode signing key
+      run: |
+        echo "${{ secrets.SIGNING_KEY }}" | base64 -d > android/app-signing-key.jks
+        
+    - name: Build signed APK
+      run: flutter build apk --release
+      
+    - name: Build signed App Bundle
+      run: flutter build appbundle --release
+      
+    - name: Get version info
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Rename artifacts
+      run: |
+        mv build/app/outputs/flutter-apk/app-release.apk \
+           build/app/outputs/flutter-apk/notes-app-v${{ steps.version.outputs.version }}-signed.apk
+        mv build/app/outputs/bundle/release/app-release.aab \
+           build/app/outputs/bundle/release/notes-app-v${{ steps.version.outputs.version }}-signed.aab
+           
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: signed-apk
+        path: build/app/outputs/flutter-apk/notes-app-v${{ steps.version.outputs.version }}-signed.apk
+        
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: signed-aab
+        path: build/app/outputs/bundle/release/notes-app-v${{ steps.version.outputs.version }}-signed.aab
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: Notes App v${{ steps.version.outputs.version }} (Signed)
+        body: |
+          ## Notes App v${{ steps.version.outputs.version }} - Signed Release
+          
+          This is a signed release build ready for production deployment.
+          
+          ### Downloads
+          - **APK**: Direct installation on Android devices
+          - **AAB**: For Google Play Store deployment
+          
+          ### Installation Instructions
+          
+          #### APK Installation:
+          1. Download the APK file
+          2. Enable "Install from unknown sources" in Android settings
+          3. Install the APK file
+          
+          #### Play Store Deployment:
+          1. Upload the AAB file to Google Play Console
+          2. Follow Google Play's review process
+          
+          ### Features
+          - ✅ Create, edit, and delete notes
+          - ✅ Search functionality with filters
+          - ✅ Categories and tags organization
+          - ✅ Dark/Light mode support
+          - ✅ Local storage with SQLite
+          - ✅ Export/Import notes functionality
+          - ✅ Responsive design for all screen sizes
+          - ✅ Smooth animations and transitions
+          
+          ### Security
+          - ✅ Signed with production certificate
+          - ✅ Code obfuscation enabled
+          - ✅ Optimized for release
+          
+          ### Technical Details
+          - **Min SDK**: Android 5.0 (API 21)
+          - **Target SDK**: Latest Android version
+          - **Architecture**: ARM64, ARMv7, x86_64
+          - **Size**: Optimized for minimal download
+          
+        files: |
+          build/app/outputs/flutter-apk/notes-app-v${{ steps.version.outputs.version }}-signed.apk
+          build/app/outputs/bundle/release/notes-app-v${{ steps.version.outputs.version }}-signed.aab
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        
+    - name: Clean up
+      if: always()
+      run: |
+        rm -f android/key.properties
+        rm -f android/app-signing-key.jks
+
